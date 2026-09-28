@@ -6,6 +6,7 @@ import type { AIAction, AIContext, AIResponse, AIWidget, ConversationMemory } fr
 import { whatsappLink } from '../../data/business'
 import { formatDuration, formatShortDay, todayISO, addDays } from '../../lib/dates'
 import { cx, formatPrice } from '../../lib/format'
+import { cleanLine, LIMITS } from '../../lib/sanitize'
 import { useAppData } from '../../services/store'
 import { WhatsAppIcon } from '../ui/BrandIcons'
 import { SmartImage } from '../ui/SmartImage'
@@ -80,7 +81,7 @@ function AssistantWidget({
   const addUser = (text: string) => setMessages((ms) => [...ms, { id: Date.now(), role: 'user', text }])
 
   const send = async (text: string) => {
-    const msg = text.trim()
+    const msg = cleanLine(text, LIMITS.chat)
     if (!msg || thinking) return
     setInput('')
     addUser(msg)
@@ -224,6 +225,8 @@ function AssistantWidget({
                 ref={inputRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
+                maxLength={LIMITS.chat}
+                autoComplete="off"
                 placeholder="Escribí tu consulta…"
                 className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted/70"
                 aria-label="Mensaje para Alma"

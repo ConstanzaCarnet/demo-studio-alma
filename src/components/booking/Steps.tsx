@@ -4,6 +4,7 @@ import { business } from '../../data/business'
 import type { Professional, Service } from '../../domain/types'
 import { addDays, formatDuration, formatLongDate, parseISODate, startOfWeek, timeToMin, todayISO } from '../../lib/dates'
 import { cx, formatPrice } from '../../lib/format'
+import { LIMITS } from '../../lib/sanitize'
 import type { DayAvailability, SlotOption } from '../../services/availability'
 import { ANY_PROFESSIONAL, queryDay, queryRange } from '../../services/bookingService'
 import { useAppData } from '../../services/store'
@@ -323,11 +324,11 @@ export function DetailsStep({ form, setForm, errors, onSubmit }: { form: ClientF
         noValidate
       >
         <div className="grid gap-4 sm:grid-cols-2">
-          {field('firstName', 'Nombre', { autoComplete: 'given-name', placeholder: 'María' })}
-          {field('lastName', 'Apellido', { autoComplete: 'family-name', placeholder: 'González' })}
+          {field('firstName', 'Nombre', { autoComplete: 'given-name', placeholder: 'María', maxLength: LIMITS.name })}
+          {field('lastName', 'Apellido', { autoComplete: 'family-name', placeholder: 'González', maxLength: LIMITS.name })}
         </div>
-        {field('phone', 'Teléfono (WhatsApp)', { type: 'tel', inputMode: 'tel', autoComplete: 'tel', placeholder: '351 555 0142' })}
-        {field('email', 'Email (opcional)', { type: 'email', autoComplete: 'email', placeholder: 'maria@mail.com' })}
+        {field('phone', 'Teléfono (WhatsApp)', { type: 'tel', inputMode: 'tel', autoComplete: 'tel', placeholder: '351 555 0142', maxLength: LIMITS.phone })}
+        {field('email', 'Email (opcional)', { type: 'email', autoComplete: 'email', placeholder: 'maria@mail.com', maxLength: LIMITS.email })}
         <div>
           <label htmlFor="comment" className="label">
             Comentario (opcional)
@@ -335,6 +336,7 @@ export function DetailsStep({ form, setForm, errors, onSubmit }: { form: ClientF
           <textarea
             id="comment"
             rows={2}
+            maxLength={LIMITS.comment}
             value={form.comment}
             onChange={(e) => setForm({ ...form, comment: e.target.value })}
             className="input resize-none"

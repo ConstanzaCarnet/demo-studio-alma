@@ -51,9 +51,10 @@ export interface AIContext {
 }
 
 /**
- * Contrato de un motor de IA. Implementaciones:
+ * Contrato de un motor de IA. Implementación actual:
  *  - DemoAIProvider: reglas + datos reales, sin API (modo demo).
- *  - RemoteAIProvider: LLM real (OpenAI, Gemini, etc.) vía backend propio.
+ * Un LLM real se conectaría siempre desde un backend propio (la clave nunca
+ * va en el navegador), implementando esta misma interfaz.
  */
 export interface AIProvider {
   readonly name: string

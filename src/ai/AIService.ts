@@ -1,12 +1,19 @@
 import type { ISODate } from '../domain/types'
+import { cleanLine, LIMITS } from '../lib/sanitize'
 import { DemoAIProvider } from './demoProvider'
 import { daysResponse, slotsResponse } from './flows'
-import { RemoteAIProvider } from './remoteProvider'
 import type { AIContext, AIProvider, AIResponse } from './types'
+
+/** Historial máximo que se le pasa al motor. */
+const MAX_HISTORY = 12
 
 /**
  * Punto de entrada único al asistente. La UI sólo conoce esta clase:
- * cambiar de motor (demo → un LLM real) no toca componentes.
+ * cambiar de motor no toca componentes.
+ *
+ * Esta versión usa únicamente el motor demo: respuestas deterministas
+ * construidas con los datos de la app. No hay llamadas a APIs externas,
+ * no hay claves y no se consumen tokens.
  */
 export class AIService {
   constructor(private provider: AIProvider) {}
@@ -16,8 +23,16 @@ export class AIService {
   }
 
   async ask(message: string, context: AIContext): Promise<AIResponse> {
+    const clean = cleanLine(message, LIMITS.chat)
+    if (!clean) {
+      return { text: 'No llegué a leer tu mensaje. ¿Me contás qué servicio te interesa?' }
+    }
+    const safeContext: AIContext = {
+      ...context,
+      history: context.history.slice(-MAX_HISTORY).map((m) => ({ role: m.role, text: cleanLine(m.text, LIMITS.chat) })),
+    }
     try {
-      return await this.provider.ask(message, context)
+      return await this.provider.ask(clean, safeContext)
     } catch {
       return {
         text: 'Tuve un problema para responder. Probá de nuevo en un momento o escribinos por WhatsApp.',
@@ -40,9 +55,4 @@ export class AIService {
   }
 }
 
-const provider: AIProvider =
-  import.meta.env.VITE_AI_PROVIDER === 'remote' && import.meta.env.VITE_AI_ENDPOINT
-    ? new RemoteAIProvider(import.meta.env.VITE_AI_ENDPOINT)
-    : new DemoAIProvider()
-
-export const aiService = new AIService(provider)
+export const aiService = new AIService(new DemoAIProvider())

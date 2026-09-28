@@ -1,5 +1,6 @@
 import type { Appointment, AppointmentSource, Client, ISODate, Time } from '../domain/types'
 import { uid } from '../lib/format'
+import { cleanLine, cleanMultiline, LIMITS } from '../lib/sanitize'
 import { eligibleProfessionals, getAvailabilityRange, getDayAvailability, resolveSlot } from './availability'
 import { store } from './store'
 
@@ -54,8 +55,13 @@ const phoneDigits = (p: string) => p.replace(/\D/g, '').slice(-8)
  */
 export async function createBooking(req: BookingRequest): Promise<{ appointment: Appointment; client: Client }> {
   await new Promise((r) => setTimeout(r, 650)) // latencia simulada de red
-  const { firstName, lastName, phone } = req.client
-  if (!firstName.trim() || !lastName.trim() || phoneDigits(phone).length < 8) {
+  // Se limpia acá además de en la UI: es la última barrera antes de guardar.
+  const firstName = cleanLine(req.client.firstName, LIMITS.name)
+  const lastName = cleanLine(req.client.lastName, LIMITS.name)
+  const phone = cleanLine(req.client.phone, LIMITS.phone).replace(/[^\d+\s()-]/g, '')
+  const email = cleanLine(req.client.email ?? '', LIMITS.email)
+  const comment = cleanMultiline(req.comment ?? '', LIMITS.comment)
+  if (!firstName || !lastName || phoneDigits(phone).length < 8 || (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) {
     throw new BookingError('INVALID', 'Revisá tus datos de contacto.')
   }
 
@@ -71,10 +77,10 @@ export async function createBooking(req: BookingRequest): Promise<{ appointment:
   if (!client) {
     client = {
       id: uid('cli'),
-      firstName: firstName.trim(),
-      lastName: lastName.trim(),
-      phone: phone.trim(),
-      email: req.client.email?.trim() || undefined,
+      firstName,
+      lastName,
+      phone,
+      email: email || undefined,
       createdAt: new Date().toISOString(),
     }
   }
@@ -89,7 +95,7 @@ export async function createBooking(req: BookingRequest): Promise<{ appointment:
     durationMin: service.durationMin,
     price: service.price,
     status: 'confirmed',
-    comment: req.comment?.trim() || undefined,
+    comment: comment || undefined,
     source: req.source,
     createdAt: new Date().toISOString(),
   }

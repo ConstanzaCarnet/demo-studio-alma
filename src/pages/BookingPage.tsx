@@ -21,6 +21,7 @@ import type { Appointment, Client } from '../domain/types'
 import { downloadIcs, googleCalendarUrl } from '../lib/calendar'
 import { formatDuration, formatLongDate } from '../lib/dates'
 import { cx, formatPrice } from '../lib/format'
+import { isISODate, isSafeId, isTime } from '../lib/sanitize'
 import { ANY_PROFESSIONAL, BookingError, createBooking, queryDay } from '../services/bookingService'
 import { useAppData } from '../services/store'
 
@@ -39,11 +40,15 @@ interface Draft {
 
 /** Paso inicial según los parámetros de la URL (links desde servicios, equipo o el asistente). */
 function initialState(params: URLSearchParams, services: { id: string; professionalIds: string[]; active: boolean }[]): { draft: Draft; step: number; stale: boolean } {
+  // Los parámetros llegan de links que cualquiera puede editar: se validan antes de usarlos.
   const service = services.find((s) => s.id === params.get('servicio') && s.active)
-  const pro = params.get('profesional') ?? undefined
+  const rawPro = params.get('profesional')
+  const pro = isSafeId(rawPro) ? rawPro : undefined
   const proOk = pro && (!service || pro === ANY_PROFESSIONAL || service.professionalIds.includes(pro)) ? pro : undefined
-  const date = params.get('fecha') ?? undefined
-  const time = params.get('hora') ?? undefined
+  const rawDate = params.get('fecha')
+  const rawTime = params.get('hora')
+  const date = isISODate(rawDate) ? rawDate : undefined
+  const time = isTime(rawTime) ? rawTime : undefined
   if (!service) return { draft: { professionalId: proOk }, step: 0, stale: false }
   if (!proOk) return { draft: { serviceId: service.id }, step: 1, stale: false }
   if (!date) return { draft: { serviceId: service.id, professionalId: proOk }, step: 2, stale: false }
